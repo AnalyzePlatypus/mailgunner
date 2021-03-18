@@ -1,10 +1,10 @@
 {
-  "name": "mailgun_mass_mailer",
+  "name": "mailgunner",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "send": "cd src && node index.js"
   },
   "author": "Michoel Samuels",
   "license": "ISC",

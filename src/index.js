@@ -1,54 +1,43 @@
-const fs = require('fs');
-var lockFile = require('lockfile');
 
-const { readJsonFile, readCsvFile, loadEnvVars, validateEnvVars } = require("./util.js");
-const { createProgressFileIfNotExists } = require("./emailProgressFile.js");
+const { readTextFile, readJsonFile, readCsvFile, loadEnvVars, validateEnvVars, parseBoolean } = require("./util.js");
 const { sendBatchEmail } = require("./sendEmail");
 
 const REQUIRED_ENV_VARS = [
   "DATA_DIRECTORY"
 ]
 
+loadEnvVars("../.env.json");
+validateEnvVars(REQUIRED_ENV_VARS);
 
-// Helpers
+const DATA_DIRECTORY = "../" + process.env.DATA_DIRECTORY;
+const EMAIL_RECIPIENT_FILE_PATH = DATA_DIRECTORY + "emails.csv";
+const HTML_TEMPLATE_PATH = DATA_DIRECTORY + "template.html";
+const TEXT_TEMPLATE_PATH = DATA_DIRECTORY + "template.txt";
 
 // Runtime
 async function main() {
   console.log("\n🏎 Start!");
-
-  loadEnvVars("../.env.json");
-  validateEnvVars(REQUIRED_ENV_VARS);
-
-  const DATA_DIRECTORY = "../" + process.env.DATA_DIRECTORY;
-  const CONFIG_FILE_PATH = DATA_DIRECTORY + "config.json";
-  const EMAIL_RECIPIENT_FILE_PATH = DATA_DIRECTORY + "emails.csv";
-  const PROGRESS_FILE_PATH = DATA_DIRECTORY + "progress.json"
-  const HTML_TEMPLATE_PATH = DATA_DIRECTORY + "template.html";
-  const TEXT_TEMPLATE_PATH = DATA_DIRECTORY + "template.txt";
-
-  const config = readJsonFile(CONFIG_FILE_PATH);
-
-  console.log(`🌀 Reading email recipient CSV file (${EMAIL_RECIPIENT_FILE_PATH})`);
-  const {data: emailRecipients} = readCsvFile(EMAIL_RECIPIENT_FILE_PATH);
-  console.log(`📂 Found ${emailRecipients.length} recipients`);
-
-
   
-  const textTemplate = fs.readFileSync(TEXT_TEMPLATE_PATH).toString();
-  const htmlTemplate = fs.readFileSync(HTML_TEMPLATE_PATH).toString();
-
-
-  const emailConfigs = emailRecipients.map(({firstName, lastName, email}) => {
-    return {firstName, lastName, email}
-  })
+  const textTemplate = readTextFile(TEXT_TEMPLATE_PATH);
+  const htmlTemplate = readTextFile(HTML_TEMPLATE_PATH);
+  const emailRecipients = readEmailRecipientFile();
 
   await sendBatchEmail({
-    emailConfigs, 
+    emailRecipients, 
     emailPlainText: textTemplate, 
     emailHtml: htmlTemplate
   })
 
   console.log("🌙 That's all, folks!");
+}
+
+function readEmailRecipientFile() {
+  console.log(`🌀 Reading email recipient CSV file (${EMAIL_RECIPIENT_FILE_PATH})`);
+  const {data: emailRecipients} = readCsvFile(EMAIL_RECIPIENT_FILE_PATH);
+  console.log(`📂 Found ${emailRecipients.length} recipients`);
+  return emailRecipients.map(({firstName, lastName, email}) => {
+    return {firstName, lastName, email}
+  })
 }
 
 main();
